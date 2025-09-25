@@ -581,58 +581,13 @@ class Token(BaseToken):
     async def _get_subject_token(
         self, credential_source: Dict[str, Any], timeout: int
     ) -> str:
-        """Get the subject token from the credential source."""
-        source_type = credential_source.get('type')
-        if not source_type:
-            raise ValueError('Credential source missing type')
-
-        if source_type == 'url':
-            # Get token from URL
-            url = credential_source['url']
-            headers = credential_source.get('headers', {})
-            format_type = credential_source.get(
-                'format', {}).get('type', 'text')
-
-            resp = await self.session.get(url, headers=headers, timeout=timeout)
-            if resp.status != 200:
-                raise ValueError(
-                    f'Failed to get subject token from URL: {resp.status} {resp.reason}'
-                )
-
-            if format_type == 'json':
-                try:
-                    data = await resp.json()
-                except (AttributeError, TypeError):
-                    data = json.loads(resp.text)
-                return data[credential_source['format']
-                            ['subject_token_field_name']]
-            else:
-                try:
-                    return await resp.text()
-                except (AttributeError, TypeError):
-                    return str(resp.text)
-
-        elif source_type == 'file':
-            # Get token from file
-            file_path = credential_source['file']
-            try:
-                with open(file_path, encoding='utf-8') as f:
-                    return f.read().strip()
-            except Exception as e:
-                raise ValueError(
-                    f'Failed to read subject token from file: {e}')
-
-        elif source_type == 'environment':
-            # Get token from environment variable
-            env_var = credential_source['environment_id']
-            token = os.environ.get(env_var)
-            if not token:
-                raise ValueError(f'Environment variable {env_var} not set')
-            return token
-
-        else:
+        file_path = credential_source['file']
+        try:
+            with open(file_path, encoding='utf-8') as f:
+                return f.read().strip()
+        except Exception as e:
             raise ValueError(
-                f'Unsupported credential source type: {source_type}')
+                f'Failed to read subject token from file: {e}')
 
     async def refresh(self, *, timeout: int) -> TokenResponse:
         """Refresh the token."""
